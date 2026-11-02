@@ -18,7 +18,7 @@ import java.util.regex.Pattern;
 public final class UpdateManager {
     private static final String PREFS = "feurstagram_prefs";
     private static final String KEY_UPDATE_URL = "update_url";
-    public static final String DEFAULT_UPDATE_URL = "https://10.212.4.235:8443/updates.json";
+    public static final String DEFAULT_UPDATE_URL = "https://feurstagram-updates.onrender.com/updates.json";
 
     private UpdateManager() {}
 

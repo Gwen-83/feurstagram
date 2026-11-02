@@ -350,12 +350,13 @@ public final class Config {
     }
 
     public static String getAppVersionName() {
-        return "1.0.2";
+        return "1.0.3";
     }
 
     public static String getChangelogText() {
-        return "Feurstagram 1.0.2\n\n"
-                + "- visible test update for the in-place delivery flow\n"
+        return "Feurstagram 1.0.3\n\n"
+                + "- public Render update feed for OTA delivery\n"
+                + "- fixed static hosting path for manifest and APK URLs\n"
                 + "- English/French interface language selection\n"
                 + "- search in settings and clearer group labels\n"
                 + "- better accessibility labels for screen readers\n"

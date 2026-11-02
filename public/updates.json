@@ -1,5 +1,5 @@
 {
   "version": "1.0.8",
   "apkUrl": "https://pub-6e8e77d36cc349f2a5221ebf65da0bc8.r2.dev/feurstagram-release.apk",
-  "notes": "test mise à jour v1.0.8\n\nVersion 1.0.8 - mise à jour Feurstagram.\n\n- public Cloudflare update feed for OTA delivery\n- fixed static hosting path for manifest and APK URLs\n- English/French interface language selection\n- search in settings and clearer group labels\n- better accessibility labels for screen readers\n- saved preferences snapshot and restore support\n- remote update manifest and in-place install flow"
+  "notes": "Version 1.0.8 - mise à jour Feurstagram."
 }

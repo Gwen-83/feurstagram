@@ -39,6 +39,7 @@ UPLOAD_TARGET="${UPLOAD_TARGET:-}"
 R2_ENDPOINT="${R2_ENDPOINT:-}"
 R2_BUCKET="${R2_BUCKET:-}"
 PUBLIC_UPDATE_BASE_URL="${PUBLIC_UPDATE_BASE_URL:-$MANIFEST_URL}"
+PUBLIC_UPDATE_BASE_URL="${PUBLIC_UPDATE_BASE_URL%/}"
 
 if [ ! -f "$APK_PATH" ]; then
   echo "Error: APK not found: $APK_PATH" >&2
@@ -72,24 +73,25 @@ auto_upload() {
       echo "Uploading with scp to $UPLOAD_TARGET"
       scp -r "$OUTPUT_DIR"/* "$UPLOAD_TARGET"
       ;;
-    r2)
-      if [ -z "$R2_BUCKET" ] || [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
-        echo "UPLOAD_MODE=r2 requires R2_BUCKET, AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY to be set." >&2
+    rclone|r2)
+      if [ -z "$R2_BUCKET" ]; then
+        echo "UPLOAD_MODE=$UPLOAD_MODE requires R2_BUCKET to be set." >&2
         return 1
       fi
-      if [ -z "$R2_ENDPOINT" ]; then
-        echo "R2_ENDPOINT is not set; set it to the Cloudflare R2 endpoint, e.g. https://<account>.r2.cloudflarestorage.com" >&2
+      if ! command -v rclone >/dev/null 2>&1; then
+        echo "rclone is required for UPLOAD_MODE=$UPLOAD_MODE. Install it first." >&2
         return 1
       fi
-      echo "Uploading with aws s3 sync to Cloudflare R2 bucket $R2_BUCKET"
-      aws --endpoint-url "$R2_ENDPOINT" s3 cp "$APK_DEST" "s3://$R2_BUCKET/feurstagram-release.apk" --only-show-errors
-      aws --endpoint-url "$R2_ENDPOINT" s3 cp "$MANIFEST_PATH" "s3://$R2_BUCKET/updates.json" --only-show-errors
+      R2_REMOTE="${R2_REMOTE:-r2}"
+      echo "Uploading with rclone to Cloudflare R2 bucket $R2_BUCKET via remote $R2_REMOTE"
+      rclone copy "$APK_DEST" "$R2_REMOTE:$R2_BUCKET/" --quiet
+      rclone copy "$MANIFEST_PATH" "$R2_REMOTE:$R2_BUCKET/" --quiet
       ;;
     none|"")
       echo "Automatic upload disabled (UPLOAD_MODE=none)."
       ;;
     *)
-      echo "Unsupported UPLOAD_MODE='$UPLOAD_MODE'. Supported: none, scp, r2" >&2
+      echo "Unsupported UPLOAD_MODE='$UPLOAD_MODE'. Supported: none, scp, rclone, r2" >&2
       return 1
       ;;
   esac

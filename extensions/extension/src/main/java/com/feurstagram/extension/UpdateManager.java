@@ -18,7 +18,8 @@ import java.util.regex.Pattern;
 public final class UpdateManager {
     private static final String PREFS = "feurstagram_prefs";
     private static final String KEY_UPDATE_URL = "update_url";
-    public static final String DEFAULT_UPDATE_URL = "https://feurstagram.onrender.com/updates.json";
+    private static final String LEGACY_UPDATE_URL = "https://feurstagram.onrender.com/updates.json";
+    public static final String DEFAULT_UPDATE_URL = "https://pub-6e8e77d36cc349f2a5221ebf65da0bc8.r2.dev/updates.json";
 
     private UpdateManager() {}
 
@@ -27,7 +28,11 @@ public final class UpdateManager {
         if (context == null) return DEFAULT_UPDATE_URL;
         SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         String value = prefs.getString(KEY_UPDATE_URL, DEFAULT_UPDATE_URL);
-        return value == null || value.trim().isEmpty() ? DEFAULT_UPDATE_URL : value.trim();
+        if (value == null || value.trim().isEmpty() || LEGACY_UPDATE_URL.equals(value.trim())) {
+            prefs.edit().putString(KEY_UPDATE_URL, DEFAULT_UPDATE_URL).apply();
+            return DEFAULT_UPDATE_URL;
+        }
+        return value.trim();
     }
 
     public static void setUpdateUrl(String value) {
@@ -79,10 +84,10 @@ public final class UpdateManager {
             if (jsonText == null || jsonText.trim().isEmpty()) {
                 return new Release("0.0.0", DEFAULT_UPDATE_URL, "No release metadata available.");
             }
-            String version = findString(jsonText, "version");
-            String apkUrl = findString(jsonText, "apkUrl");
-            if (apkUrl == null || apkUrl.isEmpty()) apkUrl = findString(jsonText, "downloadUrl");
-            String notes = findString(jsonText, "notes");
+            String version = unescapeJsonString(findString(jsonText, "version"));
+            String apkUrl = unescapeJsonString(findString(jsonText, "apkUrl"));
+            if (apkUrl == null || apkUrl.isEmpty()) apkUrl = unescapeJsonString(findString(jsonText, "downloadUrl"));
+            String notes = unescapeJsonString(findString(jsonText, "notes"));
             if (version == null || version.isEmpty()) version = Config.getAppVersionName();
             if (apkUrl == null || apkUrl.isEmpty()) apkUrl = DEFAULT_UPDATE_URL;
             if (notes == null || notes.isEmpty()) notes = "Release notes unavailable.";
@@ -93,9 +98,44 @@ public final class UpdateManager {
     }
 
     private static String findString(String jsonText, String key) {
-        Pattern pattern = Pattern.compile("\"" + Pattern.quote(key) + "\"\\s*:\\s*\"([^\\\"]*)\"");
+        Pattern pattern = Pattern.compile("\"" + Pattern.quote(key) + "\"\\s*:\\s*\"((?:\\\\.|[^\\\"])*)\"");
         Matcher matcher = pattern.matcher(jsonText);
         return matcher.find() ? matcher.group(1) : null;
+    }
+
+    private static String unescapeJsonString(String value) {
+        if (value == null) return null;
+        StringBuilder out = new StringBuilder(value.length());
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+            if (c == '\\' && i + 1 < value.length()) {
+                char next = value.charAt(++i);
+                switch (next) {
+                    case '"': c = '"'; break;
+                    case '\\': c = '\\'; break;
+                    case '/': c = '/'; break;
+                    case 'b': c = '\b'; break;
+                    case 'f': c = '\f'; break;
+                    case 'n': c = '\n'; break;
+                    case 'r': c = '\r'; break;
+                    case 't': c = '\t'; break;
+                    case 'u':
+                        if (i + 4 < value.length()) {
+                            try {
+                                String codePoint = value.substring(i + 1, i + 5);
+                                c = (char) Integer.parseInt(codePoint, 16);
+                                i += 4;
+                            } catch (NumberFormatException ignored) {
+                                c = 'u';
+                            }
+                        }
+                        break;
+                    default: c = next; break;
+                }
+            }
+            out.append(c);
+        }
+        return out.toString();
     }
 
     private static byte[] readFully(InputStream inputStream) throws java.io.IOException {

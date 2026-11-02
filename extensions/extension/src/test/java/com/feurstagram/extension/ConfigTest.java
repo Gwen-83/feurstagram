@@ -126,6 +126,17 @@ public class ConfigTest {
     }
 
     @Test
+    public void otaManifestUnescapesNotesAndFallsBackToDownloadUrl() {
+        UpdateManager.Release release = UpdateManager.parseRelease(
+                "{\"version\":\"1.0.5\",\"downloadUrl\":\"https://example.com/feurstagram-release.apk\",\"notes\":\"test mise à jour\\n\\nVersion 1.0.5 - mise à jour Feurstagram.\"}");
+        assertEquals("1.0.5", release.version);
+        assertEquals("https://example.com/feurstagram-release.apk", release.apkUrl);
+        assertTrue(release.notes.contains("test mise à jour"));
+        assertTrue(release.notes.contains("Version 1.0.5"));
+        assertTrue(release.notes.contains("\n\n"));
+    }
+
+    @Test
     public void profilesDefineExactPresetsWithoutTouchingOtherPreferences() {
         Config.SettingsProfile messages = Config.settingsProfile("messages");
         Config.SettingsProfile following = Config.settingsProfile("following");

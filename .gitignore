@@ -4,7 +4,7 @@
 *.idsig
 *.mpe
 *.mpp
-!public/feurstagram-release.apk
+public/*.apk
 
 # Local tooling (Morphe CLI is downloaded locally)
 tools/

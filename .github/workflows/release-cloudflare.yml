@@ -2,6 +2,11 @@ name: Release to Cloudflare R2
 
 on:
   workflow_dispatch:
+    inputs:
+      apk_url:
+        description: Optional URL to a base Instagram APK/APKM to patch
+        required: false
+        type: string
   push:
     tags:
       - "v*"
@@ -81,8 +86,16 @@ jobs:
       - name: Ensure required input APK exists
         shell: bash
         run: |
-          if [ ! -f build/inputs/instagram-454.apkm ] && [ ! -f build/inputs/instagram-435.apkm ]; then
-            echo "No input APK/APKM was found in build/inputs/. Add a local base Instagram bundle or provide one in build/inputs/." >&2
+          mkdir -p build/inputs
+          APK_URL="${{ github.event.inputs.apk_url || '' }}"
+          if [ -n "$APK_URL" ]; then
+            echo "Downloading base APK from $APK_URL"
+            curl -L --fail -o build/inputs/instagram-454.apkm "$APK_URL"
+          fi
+
+          if [ ! -f build/inputs/instagram-454.apkm ] && [ ! -f build/inputs/instagram-435.apkm ] && [ ! -f build/inputs/*.apkm ] && [ ! -f build/inputs/*.apk ]; then
+            echo "No input APK/APKM was found in build/inputs/, and no apk_url was provided."
+            echo "Add a base Instagram bundle to build/inputs/ or pass a direct apk_url when running the workflow manually."
             exit 1
           fi
 

@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: feurstagram-updates
+    env: static
+    staticPublishPath: ./public
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: public, max-age=60

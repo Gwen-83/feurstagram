@@ -1,0 +1,19 @@
+Feurstagram
+===========
+
+Copyright (C) Feurstagram contributors.
+
+Licensed under the GNU General Public License v3.0 (see LICENSE).
+
+This project is built with and attributes the following GPLv3 works:
+
+- Morphe (https://morphe.software) — the patcher and Gradle tooling used to
+  build and apply the patches. Per the Morphe NOTICE (GPLv3 Section 7c), the
+  "Morphe" name is used here only descriptively, for compatibility; Feurstagram
+  is a distinct, independent project and does not imply authorship by, or
+  affiliation with, the Morphe project.
+
+- Piko (https://github.com/crimera/piko) — some Instagram patch approaches
+  (notably the network-blocking and clone techniques) are adapted from Piko.
+
+All other code is original to Feurstagram.

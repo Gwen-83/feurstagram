@@ -16,6 +16,7 @@ jobs:
       FEURSTAGRAM_KEY_ALIAS: ${{ secrets.FEURSTAGRAM_KEY_ALIAS || 'feurstagram' }}
       FEURSTAGRAM_KEYSTORE_PASS: ${{ secrets.FEURSTAGRAM_KEYSTORE_PASS }}
       FEURSTAGRAM_KEY_PASS: ${{ secrets.FEURSTAGRAM_KEY_PASS }}
+      FEURSTAGRAM_KEYSTORE_BASE64: ${{ secrets.FEURSTAGRAM_KEYSTORE_BASE64 }}
       R2_BUCKET: ${{ secrets.R2_BUCKET }}
       PUBLIC_UPDATE_BASE_URL: ${{ secrets.R2_PUBLIC_BASE_URL }}
       UPLOAD_MODE: rclone
@@ -49,11 +50,12 @@ jobs:
           sudo -n apt-get install -y rclone >/dev/null
 
       - name: Prepare keystore
-        if: ${{ secrets.FEURSTAGRAM_KEYSTORE_BASE64 != '' }}
         shell: bash
         run: |
-          printf '%s' '${{ secrets.FEURSTAGRAM_KEYSTORE_BASE64 }}' | base64 --decode > "$RUNNER_TEMP/feurstagram.keystore"
-          echo "FEURSTAGRAM_KEYSTORE=$RUNNER_TEMP/feurstagram.keystore" >> "$GITHUB_ENV"
+          if [ -n "${FEURSTAGRAM_KEYSTORE_BASE64:-}" ]; then
+            printf '%s' "$FEURSTAGRAM_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/feurstagram.keystore"
+            echo "FEURSTAGRAM_KEYSTORE=$RUNNER_TEMP/feurstagram.keystore" >> "$GITHUB_ENV"
+          fi
 
       - name: Ensure required input APK exists
         shell: bash
@@ -85,9 +87,12 @@ jobs:
           rclone copy public/updates.json "${R2_REMOTE}:${R2_BUCKET}/" --quiet
 
       - name: Verify public URLs respond
-        if: ${{ env.PUBLIC_UPDATE_BASE_URL != '' }}
         shell: bash
         run: |
-          curl -fsSL "$PUBLIC_UPDATE_BASE_URL/updates.json" | head -c 200
-          echo
-          curl -fsSL -I "$PUBLIC_UPDATE_BASE_URL/feurstagram-release.apk" | head -n 5
+          if [ -n "${PUBLIC_UPDATE_BASE_URL:-}" ]; then
+            curl -fsSL "$PUBLIC_UPDATE_BASE_URL/updates.json" | head -c 200
+            echo
+            curl -fsSL -I "$PUBLIC_UPDATE_BASE_URL/feurstagram-release.apk" | head -n 5
+          else
+            echo "PUBLIC_UPDATE_BASE_URL is empty; skipping remote verification."
+          fi

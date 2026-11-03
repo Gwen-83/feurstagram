@@ -62,7 +62,7 @@ public final class DebugBridge {
 
     private static final String[] ACTIONS = {
             "SET", "GET", "REMOVE", "DUMP", "NAV", "TRACE", "RESET", "RESTART", "SETTINGS", "PING",
-            "TREE", "INTRO", "CLICK", "TOUCH", "FIELDS",
+            "TREE", "INTRO", "CLICK", "TOUCH", "FIELDS", "UPDATE",
     };
 
     private static boolean sInstalled;
@@ -169,9 +169,22 @@ public final class DebugBridge {
                 return restart(context);
             case "SETTINGS":
                 return settings();
+            case "UPDATE":
+                return update();
             default:
                 return "unknown command " + command;
         }
+    }
+
+    private static String update() {
+        Context context = Config.getAppContext();
+        if (context == null) return "ERROR no context";
+        UpdateManager.UpdateCheckResult result = UpdateManager.checkForUpdate(
+                context,
+                Config.getAppVersionName(),
+                UpdateManager.getUpdateUrl()
+        );
+        return result == null || result.message == null ? "ERROR update check failed" : result.message;
     }
 
     /**

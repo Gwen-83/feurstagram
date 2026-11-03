@@ -350,19 +350,17 @@ public final class Config {
     }
 
     public static String getAppVersionName() {
-        return "1.0.8";
+        return "1.0.9";
     }
 
     public static String getChangelogText() {
-        return "test mise à jour v1.0.8\n\n"
-                + "Feurstagram 1.0.8\n\n"
-                + "- public Cloudflare update feed for OTA delivery\n"
-                + "- fixed static hosting path for manifest and APK URLs\n"
-                + "- English/French interface language selection\n"
-                + "- search in settings and clearer group labels\n"
-                + "- better accessibility labels for screen readers\n"
-                + "- saved preferences snapshot and restore support\n"
-                + "- remote update manifest and in-place install flow";
+        return "test mise à jour v1.0.9\n\n"
+                + "Feurstagram 1.0.9\n\n"
+                + "- Cloudflare OTA updates verified and published from the public manifest\n"
+                + "- fixed update flow for signed in-place APK upgrades\n"
+                + "- validated remote manifest parsing and version comparison\n"
+                + "- cleaner update notes and release metadata for the app settings screen\n"
+                + "- compatibility with the public R2 update feed and APK download URL";
     }
 
     public static boolean matchesSettingsSearch(String label, String query) {

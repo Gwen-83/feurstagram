@@ -59,6 +59,20 @@ public final class UpdateManager {
         }
     }
 
+    public static final class UpdateCheckResult {
+        public final boolean updateAvailable;
+        public final Release release;
+        public final File downloadedApk;
+        public final String message;
+
+        public UpdateCheckResult(boolean updateAvailable, Release release, File downloadedApk, String message) {
+            this.updateAvailable = updateAvailable;
+            this.release = release;
+            this.downloadedApk = downloadedApk;
+            this.message = message == null ? "" : message;
+        }
+    }
+
     public static Release fetchRelease(String updateUrl) {
         try {
             String url = updateUrl == null || updateUrl.trim().isEmpty() ? getUpdateUrl() : updateUrl.trim();
@@ -69,31 +83,32 @@ public final class UpdateManager {
             connection.setDoInput(true);
             int code = connection.getResponseCode();
             if (code < 200 || code >= 300) {
-                return new Release(Config.getAppVersionName(), DEFAULT_UPDATE_URL, "Update manifest unavailable.");
+                return new Release(null, url, "Update manifest unavailable.");
             }
             byte[] buffer = readFully(connection.getInputStream());
             String text = new String(buffer, java.nio.charset.StandardCharsets.UTF_8);
             return parseRelease(text);
         } catch (Throwable t) {
-            return new Release(Config.getAppVersionName(), DEFAULT_UPDATE_URL, "Unable to fetch remote update metadata.");
+            return new Release(null, updateUrl == null || updateUrl.trim().isEmpty() ? DEFAULT_UPDATE_URL : updateUrl.trim(),
+                    "Unable to fetch remote update metadata.");
         }
     }
 
     public static Release parseRelease(String jsonText) {
         try {
             if (jsonText == null || jsonText.trim().isEmpty()) {
-                return new Release("0.0.0", DEFAULT_UPDATE_URL, "No release metadata available.");
+                return new Release(null, DEFAULT_UPDATE_URL, "No release metadata available.");
             }
             String version = unescapeJsonString(findString(jsonText, "version"));
             String apkUrl = unescapeJsonString(findString(jsonText, "apkUrl"));
             if (apkUrl == null || apkUrl.isEmpty()) apkUrl = unescapeJsonString(findString(jsonText, "downloadUrl"));
             String notes = unescapeJsonString(findString(jsonText, "notes"));
-            if (version == null || version.isEmpty()) version = Config.getAppVersionName();
+            if (version == null || version.isEmpty()) version = null;
             if (apkUrl == null || apkUrl.isEmpty()) apkUrl = DEFAULT_UPDATE_URL;
             if (notes == null || notes.isEmpty()) notes = "Release notes unavailable.";
             return new Release(version, apkUrl, notes);
         } catch (Throwable t) {
-            return new Release(Config.getAppVersionName(), DEFAULT_UPDATE_URL, "Unable to parse remote update metadata.");
+            return new Release(null, DEFAULT_UPDATE_URL, "Unable to parse remote update metadata.");
         }
     }
 
@@ -149,26 +164,70 @@ public final class UpdateManager {
         return buffer.toByteArray();
     }
 
+    public static UpdateCheckResult evaluateRelease(String currentVersion, Release release) {
+        if (release == null) {
+            return new UpdateCheckResult(false, null, null,
+                    "Unable to read the update feed. The app could not confirm whether a newer version is available.");
+        }
+        if (release.version == null || release.version.trim().isEmpty()) {
+            return new UpdateCheckResult(false, release, null,
+                    "Unable to read the update feed. The app could not confirm whether a newer version is available.");
+        }
+        boolean available = shouldUpdate(currentVersion, release.version);
+        String message = available
+                ? "Update available: " + release.version + "\n" + release.notes
+                : "No update required. Current version is already up to date.";
+        return new UpdateCheckResult(available, release, null, message);
+    }
+
+    public static UpdateCheckResult checkForUpdate(Context context, String currentVersion, String updateUrl) {
+        Release release = fetchRelease(updateUrl);
+        UpdateCheckResult result = evaluateRelease(currentVersion, release);
+        if (!result.updateAvailable || release == null || release.apkUrl == null || release.apkUrl.trim().isEmpty()) {
+            return result;
+        }
+
+        File downloadedApk = downloadApk(context, release.apkUrl);
+        String message = result.message;
+        if (downloadedApk != null) {
+            message = message + "\nAPK downloaded to cache: " + downloadedApk.getAbsolutePath();
+        } else {
+            message = message + "\nThe APK could not be downloaded from the Cloudflare update feed.";
+        }
+        return new UpdateCheckResult(true, release, downloadedApk, message);
+    }
+
     public static boolean shouldUpdate(String currentVersion, String remoteVersion) {
         if (currentVersion == null || remoteVersion == null) return false;
-        String[] left = currentVersion.split("[.-]");
-        String[] right = remoteVersion.split("[.-]");
+        int[] left = extractVersionParts(currentVersion);
+        int[] right = extractVersionParts(remoteVersion);
         int length = Math.max(left.length, right.length);
         for (int i = 0; i < length; i++) {
-            int a = parseVersionPart(i < left.length ? left[i] : "0");
-            int b = parseVersionPart(i < right.length ? right[i] : "0");
+            int a = i < left.length ? left[i] : 0;
+            int b = i < right.length ? right[i] : 0;
             if (a < b) return true;
             if (a > b) return false;
         }
         return false;
     }
 
-    private static int parseVersionPart(String value) {
-        try {
-            return Integer.parseInt(value.replaceAll("[^0-9]", ""));
-        } catch (Throwable t) {
-            return 0;
+    private static int[] extractVersionParts(String value) {
+        if (value == null) return new int[0];
+        java.util.ArrayList<Integer> parts = new java.util.ArrayList<>();
+        Matcher matcher = Pattern.compile("\\d+").matcher(value);
+        while (matcher.find()) {
+            try {
+                parts.add(Integer.parseInt(matcher.group()));
+            } catch (NumberFormatException ignored) {
+                // ignore malformed numeric fragments
+            }
         }
+        if (parts.isEmpty()) return new int[] {0};
+        int[] result = new int[parts.size()];
+        for (int i = 0; i < parts.size(); i++) {
+            result[i] = parts.get(i);
+        }
+        return result;
     }
 
     public static File downloadApk(Context context, String apkUrl) {

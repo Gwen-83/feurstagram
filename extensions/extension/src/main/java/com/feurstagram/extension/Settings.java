@@ -1117,15 +1117,9 @@ public final class Settings {
                 return;
             }
             try {
-                UpdateManager.Release release = UpdateManager.fetchRelease(url);
-                boolean available = UpdateManager.shouldUpdate(Config.getAppVersionName(), release.version);
+                UpdateManager.UpdateCheckResult result = UpdateManager.checkForUpdate(context, Config.getAppVersionName(), url);
                 Toast.makeText(context,
-                        available ? UiStrings.text("updates.available",
-                                "Update available: " + release.version + "\n" + release.notes,
-                                "Mise à jour disponible : " + release.version + "\n" + release.notes)
-                                : UiStrings.text("updates.none",
-                                        "No update required. Current version is already up to date.",
-                                        "Aucune mise à jour requise. La version actuelle est déjà à jour."),
+                        result.message,
                         Toast.LENGTH_LONG).show();
             } catch (Throwable t) {
                 Toast.makeText(context,

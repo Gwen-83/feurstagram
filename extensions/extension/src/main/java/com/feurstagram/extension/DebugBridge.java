@@ -62,7 +62,7 @@ public final class DebugBridge {
 
     private static final String[] ACTIONS = {
             "SET", "GET", "REMOVE", "DUMP", "NAV", "TRACE", "RESET", "RESTART", "SETTINGS", "PING",
-            "TREE", "INTRO", "CLICK", "TOUCH", "FIELDS", "UPDATE", "FETCH",
+            "TREE", "INTRO", "CLICK", "TOUCH", "FIELDS",
     };
 
     private static boolean sInstalled;
@@ -169,58 +169,9 @@ public final class DebugBridge {
                 return restart(context);
             case "SETTINGS":
                 return settings();
-            case "UPDATE":
-                return update();
-            case "FETCH":
-                return fetch();
             default:
                 return "unknown command " + command;
         }
-    }
-
-    private static String update() {
-        final Context context = Config.getAppContext();
-        if (context == null) return "ERROR no context";
-        new Thread(() -> {
-            try {
-                UpdateManager.UpdateCheckResult result = UpdateManager.checkForUpdate(
-                        context,
-                        Config.getAppVersionName(),
-                        UpdateManager.getUpdateUrl()
-                );
-                Log.i(TAG, "update check -> " + (result == null ? "null" : result.message));
-            } catch (Throwable t) {
-                Log.e(TAG, "update check failed", t);
-            }
-        }).start();
-        return "checking update";
-    }
-
-    private static String fetch() {
-        new Thread(() -> {
-            try {
-                String url = UpdateManager.getUpdateUrl();
-                java.net.HttpURLConnection connection = (java.net.HttpURLConnection) new java.net.URL(url).openConnection();
-                connection.setConnectTimeout(15000);
-                connection.setReadTimeout(20000);
-                connection.setRequestMethod("GET");
-                connection.setRequestProperty("User-Agent", "Feurstagram/" + Config.getAppVersionName());
-                connection.setRequestProperty("Accept", "application/json,text/plain,*/*");
-                int code = connection.getResponseCode();
-                java.io.InputStream stream = code >= 200 && code < 300 ? connection.getInputStream() : connection.getErrorStream();
-                if (stream == null) {
-                    Log.i(TAG, "fetch -> HTTP " + code + " no stream");
-                    return;
-                }
-                byte[] body = new byte[2048];
-                int read = stream.read(body);
-                String snippet = new String(body, 0, Math.max(0, read), java.nio.charset.StandardCharsets.UTF_8);
-                Log.i(TAG, "fetch -> HTTP " + code + " " + snippet.replace("\n", " ").trim());
-            } catch (Throwable t) {
-                Log.e(TAG, "fetch failed", t);
-            }
-        }).start();
-        return "fetching update feed";
     }
 
     /**

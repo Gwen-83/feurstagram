@@ -116,46 +116,6 @@ public class ConfigTest {
     }
 
     @Test
-    public void updateMetadataSupportsVersionChecksAndInstallUrls() {
-        UpdateManager.Release release = UpdateManager.parseRelease(
-                "{\"version\":\"1.0.1\",\"apkUrl\":\"https://example.com/feurstagram.apk\",\"notes\":\"Fixes\"}");
-        assertEquals("1.0.1", release.version);
-        assertEquals("https://example.com/feurstagram.apk", release.apkUrl);
-        assertTrue(UpdateManager.shouldUpdate("1.0.0", release.version));
-        assertFalse(UpdateManager.shouldUpdate(release.version, "1.0.0"));
-    }
-
-    @Test
-    public void otaManifestUnescapesNotesAndFallsBackToDownloadUrl() {
-        UpdateManager.Release release = UpdateManager.parseRelease(
-                "{\"version\":\"1.0.5\",\"downloadUrl\":\"https://example.com/feurstagram-release.apk\",\"notes\":\"test mise à jour\\n\\nVersion 1.0.5 - mise à jour Feurstagram.\"}");
-        assertEquals("1.0.5", release.version);
-        assertEquals("https://example.com/feurstagram-release.apk", release.apkUrl);
-        assertTrue(release.notes.contains("test mise à jour"));
-        assertTrue(release.notes.contains("Version 1.0.5"));
-        assertTrue(release.notes.contains("\n\n"));
-    }
-
-    @Test
-    public void failedMetadataChecksAreExplicitInsteadOfPretendingTheCurrentVersionIsLatest() {
-        UpdateManager.Release release = UpdateManager.parseRelease("");
-        assertTrue(release.version == null || release.version.isEmpty());
-        assertTrue(release.notes.contains("metadata") || release.notes.contains("available") || release.notes.contains("Unable"));
-    }
-
-    @Test
-    public void newerCloudflareReleaseIsDetectedAndPreparedForDownload() {
-        UpdateManager.Release release = UpdateManager.parseRelease(
-                "{\"version\":\"1.0.10\",\"apkUrl\":\"https://example.com/feurstagram-release.apk\",\"notes\":\"Version 1.0.10\"}");
-
-        UpdateManager.UpdateCheckResult result = UpdateManager.evaluateRelease("1.0.9", release);
-        assertTrue(result.updateAvailable);
-        assertEquals("1.0.10", result.release.version);
-        assertEquals("https://example.com/feurstagram-release.apk", result.release.apkUrl);
-        assertTrue(result.message.contains("1.0.10") || result.message.contains("plus récente"));
-    }
-
-    @Test
     public void profilesDefineExactPresetsWithoutTouchingOtherPreferences() {
         Config.SettingsProfile messages = Config.settingsProfile("messages");
         Config.SettingsProfile following = Config.settingsProfile("following");

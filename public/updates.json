@@ -1,5 +1,5 @@
 {
-  "version": "1.0.15",
-  "apkUrl": "https://pub-6e8e77d36cc349f2a5221ebf65da0bc8.r2.dev/feurstagram-release.apk",
-  "notes": "Version 1.0.15 - mise à jour Feurstagram."
+  "version": "1.0.14",
+  "disabled": true,
+  "notes": "Feurstagram OTA updates are disabled in this build. The app stays on 1.0.14 until a manual release is prepared."
 }

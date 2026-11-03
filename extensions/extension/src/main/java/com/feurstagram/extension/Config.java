@@ -350,17 +350,15 @@ public final class Config {
     }
 
     public static String getAppVersionName() {
-        return "1.0.15";
+        return "1.0.14";
     }
 
     public static String getChangelogText() {
-        return "test mise à jour v1.0.15\n\n"
-                + "Feurstagram 1.0.15\n\n"
-                + "- OTA update checks now reliably parse the public Cloudflare feed\n"
-                + "- updater flow hardened against main-thread network access\n"
-                + "- signed APK compatibility preserved so Android accepts in-place installation\n"
-                + "- remote manifest and download URL validated for public OTA distribution\n"
-                + "- compatibility with the public R2 update feed and APK download URL";
+        return "Feurstagram 1.0.14\n\n"
+                + "- Stable version currently installed\n"
+                + "- OTA update system disabled intentionally\n"
+                + "- no automatic update checks or remote install flow enabled\n"
+                + "- keep the app on the current build until a manual release is prepared";
     }
 
     public static boolean matchesSettingsSearch(String label, String query) {

@@ -309,8 +309,8 @@ public final class Settings {
     /**
      * The shape every Feurstagram full-screen surface takes: a headline block, a
      * scrolling middle that absorbs whatever space is left, and an action row
-     * pinned above the navigation bar. Settings and both update screens are built
-     * on it, so they inset, centre and shrink identically.
+     * pinned above the navigation bar. Settings screens are built on it, so they
+     * inset, centre and shrink identically.
      */
     public static final class Page {
         public final LinearLayout root;
@@ -713,11 +713,6 @@ public final class Settings {
                 UiStrings.text("settings.version_value", "Version ", "Version ") + Config.getAppVersionName(),
                 () -> pages.open("Version & changelog", "View release notes and current app version.",
                         Settings::buildVersionPage));
-        addSectionRow(context, app, "download",
-                UiStrings.text("settings.updates", "Updates", "Mises à jour"),
-                UiStrings.text("settings.updates_hint", "Manual only; no downloads",
-                        "Manuel ; aucun téléchargement"),
-                () -> pages.open("Updates", "Updates are prepared locally.", Settings::buildUpdates));
         sealGroup(context, app);
 
         applyOverviewSearch(column, "");
@@ -1071,127 +1066,6 @@ public final class Settings {
                     Toast.LENGTH_LONG).show();
         });
         column.addView(restore, stackedButtonParams(context, 16));
-    }
-
-    private static void buildUpdates(Context context, LinearLayout column) {
-        TextView info = new TextView(context);
-        info.setText(UiStrings.text("updates.info",
-                "Feurstagram can be updated in place when a signed APK is hosted on a reachable URL. Use the same signing key as the installed build so Android treats it as an update, not a fresh install.",
-                "Feurstagram peut être mis à jour in situ lorsqu'un APK signé est hébergé sur une URL accessible. Utilisez la même clé de signature que le build installé pour que Android le traite comme une mise à jour et non comme une nouvelle installation."));
-        body(info);
-        column.addView(info, stackedButtonParams(context, 12));
-
-        TextView urlLabel = new TextView(context);
-        urlLabel.setText(UiStrings.text("updates.url_label", "Update manifest URL", "URL du manifest de mise à jour"));
-        body(urlLabel);
-        column.addView(urlLabel, stackedButtonParams(context, 8));
-
-        TextView urlValue = new TextView(context);
-        urlValue.setText(UpdateManager.getUpdateUrl());
-        urlValue.setTextColor(ON_SURFACE_VARIANT);
-        urlValue.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f);
-        column.addView(urlValue, stackedButtonParams(context, 12));
-
-        Button setUrl = makeButton(context,
-                UiStrings.text("updates.set_url", "Set update URL", "Définir l'URL de mise à jour"),
-                SURFACE_CONTAINER_HIGH, ON_SURFACE, true);
-        setUrl.setOnClickListener(v -> {
-            String current = UpdateManager.getUpdateUrl();
-            Toast.makeText(context,
-                    UiStrings.text("updates.url_current", "Current update URL: " + current,
-                            "URL de mise à jour actuelle : " + current),
-                    Toast.LENGTH_LONG).show();
-        });
-        column.addView(setUrl, stackedButtonParams(context, 16));
-
-        Button check = makeButton(context,
-                UiStrings.text("updates.check", "Check for updates", "Vérifier les mises à jour"),
-                PRIMARY, ON_PRIMARY, true);
-        check.setOnClickListener(v -> {
-            final String url = UpdateManager.getUpdateUrl();
-            if (url == null || url.isEmpty()) {
-                Toast.makeText(context,
-                        UiStrings.text("updates.url_missing", "No update URL configured yet.",
-                                "Aucune URL de mise à jour n'a encore été configurée."),
-                        Toast.LENGTH_LONG).show();
-                return;
-            }
-            new Thread(() -> {
-                try {
-                    final UpdateManager.UpdateCheckResult result = UpdateManager.checkForUpdate(context, Config.getAppVersionName(), url);
-                    android.os.Handler mainHandler = new android.os.Handler(android.os.Looper.getMainLooper());
-                    mainHandler.post(() -> Toast.makeText(context,
-                            result == null || result.message == null
-                                    ? UiStrings.text("updates.feed_error", "Unable to open the update feed",
-                                    "Impossible d'ouvrir le flux de mise à jour")
-                                    : result.message,
-                            Toast.LENGTH_LONG).show());
-                } catch (Throwable t) {
-                    android.os.Handler mainHandler = new android.os.Handler(android.os.Looper.getMainLooper());
-                    mainHandler.post(() -> Toast.makeText(context,
-                            UiStrings.text("updates.feed_error", "Unable to open the update feed",
-                                    "Impossible d'ouvrir le flux de mise à jour"),
-                            Toast.LENGTH_LONG).show());
-                }
-            }).start();
-        });
-        column.addView(check, stackedButtonParams(context, 16));
-
-        Button download = makeButton(context,
-                UiStrings.text("updates.download", "Download update APK", "Télécharger le APK de mise à jour"),
-                SURFACE_CONTAINER_HIGH, ON_SURFACE, true);
-        download.setOnClickListener(v -> {
-            new Thread(() -> {
-                try {
-                    UpdateManager.Release release = UpdateManager.fetchRelease(UpdateManager.getUpdateUrl());
-                    File file = UpdateManager.downloadApk(context, release.apkUrl);
-                    android.os.Handler mainHandler = new android.os.Handler(android.os.Looper.getMainLooper());
-                    if (file == null) {
-                        mainHandler.post(() -> Toast.makeText(context,
-                                UiStrings.text("updates.download_failed", "The APK could not be downloaded.",
-                                        "Le APK n'a pas pu être téléchargé."),
-                                Toast.LENGTH_LONG).show());
-                        return;
-                    }
-                    mainHandler.post(() -> Toast.makeText(context,
-                            UiStrings.text("updates.downloaded",
-                                    "Downloaded update to cache: " + file.getAbsolutePath(),
-                                    "Mise à jour téléchargée dans le cache : " + file.getAbsolutePath()),
-                            Toast.LENGTH_LONG).show());
-                } catch (Throwable t) {
-                    android.os.Handler mainHandler = new android.os.Handler(android.os.Looper.getMainLooper());
-                    mainHandler.post(() -> Toast.makeText(context,
-                            UiStrings.text("updates.download_error", "Unable to download the update",
-                                    "Impossible de télécharger la mise à jour"),
-                            Toast.LENGTH_LONG).show());
-                }
-            }).start();
-        });
-        column.addView(download, stackedButtonParams(context, 16));
-
-        Button install = makeButton(context,
-                UiStrings.text("updates.install", "Install downloaded APK", "Installer le APK téléchargé"),
-                SURFACE_CONTAINER_HIGH, ON_SURFACE, true);
-        install.setOnClickListener(v -> {
-            if (!UpdateManager.canInstallPackage(context)) {
-                Toast.makeText(context,
-                        UiStrings.text("updates.install_blocked", "Allow installation from unknown sources to install an update in place.",
-                                "Autorisez l'installation depuis des sources inconnues pour mettre à jour l'application in situ."),
-                        Toast.LENGTH_LONG).show();
-                return;
-            }
-            File apkFile = new File(context.getCacheDir(), "feurstagram-update.apk");
-            Intent installIntent = UpdateManager.installIntent(context, apkFile);
-            if (installIntent == null) {
-                Toast.makeText(context,
-                        UiStrings.text("updates.install_missing", "No update has been downloaded yet.",
-                                "Aucune mise à jour n'a encore été téléchargée."),
-                        Toast.LENGTH_LONG).show();
-                return;
-            }
-            context.startActivity(installIntent);
-        });
-        column.addView(install, stackedButtonParams(context, 16));
     }
 
     private static void buildSupport(Context context, LinearLayout column) {

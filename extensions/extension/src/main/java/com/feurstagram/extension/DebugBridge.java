@@ -62,7 +62,7 @@ public final class DebugBridge {
 
     private static final String[] ACTIONS = {
             "SET", "GET", "REMOVE", "DUMP", "NAV", "TRACE", "RESET", "RESTART", "SETTINGS", "PING",
-            "TREE", "INTRO", "CLICK", "TOUCH", "FIELDS", "UPDATE",
+            "TREE", "INTRO", "CLICK", "TOUCH", "FIELDS", "UPDATE", "FETCH",
     };
 
     private static boolean sInstalled;
@@ -171,6 +171,8 @@ public final class DebugBridge {
                 return settings();
             case "UPDATE":
                 return update();
+            case "FETCH":
+                return fetch();
             default:
                 return "unknown command " + command;
         }
@@ -185,6 +187,29 @@ public final class DebugBridge {
                 UpdateManager.getUpdateUrl()
         );
         return result == null || result.message == null ? "ERROR update check failed" : result.message;
+    }
+
+    private static String fetch() {
+        try {
+            String url = UpdateManager.getUpdateUrl();
+            java.net.HttpURLConnection connection = (java.net.HttpURLConnection) new java.net.URL(url).openConnection();
+            connection.setConnectTimeout(15000);
+            connection.setReadTimeout(20000);
+            connection.setRequestMethod("GET");
+            connection.setRequestProperty("User-Agent", "Feurstagram/" + Config.getAppVersionName());
+            connection.setRequestProperty("Accept", "application/json,text/plain,*/*");
+            int code = connection.getResponseCode();
+            java.io.InputStream stream = code >= 200 && code < 300 ? connection.getInputStream() : connection.getErrorStream();
+            if (stream == null) {
+                return "HTTP " + code + " no stream";
+            }
+            byte[] body = new byte[2048];
+            int read = stream.read(body);
+            String snippet = new String(body, 0, Math.max(0, read), java.nio.charset.StandardCharsets.UTF_8);
+            return "HTTP " + code + " " + snippet.replace("\n", " ").trim();
+        } catch (Throwable t) {
+            return "FETCH_ERROR " + t;
+        }
     }
 
     /**

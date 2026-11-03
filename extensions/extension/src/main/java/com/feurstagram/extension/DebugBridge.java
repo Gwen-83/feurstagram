@@ -179,14 +179,21 @@ public final class DebugBridge {
     }
 
     private static String update() {
-        Context context = Config.getAppContext();
+        final Context context = Config.getAppContext();
         if (context == null) return "ERROR no context";
-        UpdateManager.UpdateCheckResult result = UpdateManager.checkForUpdate(
-                context,
-                Config.getAppVersionName(),
-                UpdateManager.getUpdateUrl()
-        );
-        return result == null || result.message == null ? "ERROR update check failed" : result.message;
+        new Thread(() -> {
+            try {
+                UpdateManager.UpdateCheckResult result = UpdateManager.checkForUpdate(
+                        context,
+                        Config.getAppVersionName(),
+                        UpdateManager.getUpdateUrl()
+                );
+                Log.i(TAG, "update check -> " + (result == null ? "null" : result.message));
+            } catch (Throwable t) {
+                Log.e(TAG, "update check failed", t);
+            }
+        }).start();
+        return "checking update";
     }
 
     private static String fetch() {

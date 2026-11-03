@@ -1108,7 +1108,7 @@ public final class Settings {
                 UiStrings.text("updates.check", "Check for updates", "Vérifier les mises à jour"),
                 PRIMARY, ON_PRIMARY, true);
         check.setOnClickListener(v -> {
-            String url = UpdateManager.getUpdateUrl();
+            final String url = UpdateManager.getUpdateUrl();
             if (url == null || url.isEmpty()) {
                 Toast.makeText(context,
                         UiStrings.text("updates.url_missing", "No update URL configured yet.",
@@ -1116,17 +1116,24 @@ public final class Settings {
                         Toast.LENGTH_LONG).show();
                 return;
             }
-            try {
-                UpdateManager.UpdateCheckResult result = UpdateManager.checkForUpdate(context, Config.getAppVersionName(), url);
-                Toast.makeText(context,
-                        result.message,
-                        Toast.LENGTH_LONG).show();
-            } catch (Throwable t) {
-                Toast.makeText(context,
-                        UiStrings.text("updates.feed_error", "Unable to open the update feed",
-                                "Impossible d'ouvrir le flux de mise à jour"),
-                        Toast.LENGTH_LONG).show();
-            }
+            new Thread(() -> {
+                try {
+                    final UpdateManager.UpdateCheckResult result = UpdateManager.checkForUpdate(context, Config.getAppVersionName(), url);
+                    android.os.Handler mainHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+                    mainHandler.post(() -> Toast.makeText(context,
+                            result == null || result.message == null
+                                    ? UiStrings.text("updates.feed_error", "Unable to open the update feed",
+                                    "Impossible d'ouvrir le flux de mise à jour")
+                                    : result.message,
+                            Toast.LENGTH_LONG).show());
+                } catch (Throwable t) {
+                    android.os.Handler mainHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+                    mainHandler.post(() -> Toast.makeText(context,
+                            UiStrings.text("updates.feed_error", "Unable to open the update feed",
+                                    "Impossible d'ouvrir le flux de mise à jour"),
+                            Toast.LENGTH_LONG).show());
+                }
+            }).start();
         });
         column.addView(check, stackedButtonParams(context, 16));
 
@@ -1134,27 +1141,31 @@ public final class Settings {
                 UiStrings.text("updates.download", "Download update APK", "Télécharger le APK de mise à jour"),
                 SURFACE_CONTAINER_HIGH, ON_SURFACE, true);
         download.setOnClickListener(v -> {
-            try {
-                UpdateManager.Release release = UpdateManager.fetchRelease(UpdateManager.getUpdateUrl());
-                File file = UpdateManager.downloadApk(context, release.apkUrl);
-                if (file == null) {
-                    Toast.makeText(context,
-                            UiStrings.text("updates.download_failed", "The APK could not be downloaded.",
-                                    "Le APK n'a pas pu être téléchargé."),
-                            Toast.LENGTH_LONG).show();
-                    return;
+            new Thread(() -> {
+                try {
+                    UpdateManager.Release release = UpdateManager.fetchRelease(UpdateManager.getUpdateUrl());
+                    File file = UpdateManager.downloadApk(context, release.apkUrl);
+                    android.os.Handler mainHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+                    if (file == null) {
+                        mainHandler.post(() -> Toast.makeText(context,
+                                UiStrings.text("updates.download_failed", "The APK could not be downloaded.",
+                                        "Le APK n'a pas pu être téléchargé."),
+                                Toast.LENGTH_LONG).show());
+                        return;
+                    }
+                    mainHandler.post(() -> Toast.makeText(context,
+                            UiStrings.text("updates.downloaded",
+                                    "Downloaded update to cache: " + file.getAbsolutePath(),
+                                    "Mise à jour téléchargée dans le cache : " + file.getAbsolutePath()),
+                            Toast.LENGTH_LONG).show());
+                } catch (Throwable t) {
+                    android.os.Handler mainHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+                    mainHandler.post(() -> Toast.makeText(context,
+                            UiStrings.text("updates.download_error", "Unable to download the update",
+                                    "Impossible de télécharger la mise à jour"),
+                            Toast.LENGTH_LONG).show());
                 }
-                Toast.makeText(context,
-                        UiStrings.text("updates.downloaded",
-                                "Downloaded update to cache: " + file.getAbsolutePath(),
-                                "Mise à jour téléchargée dans le cache : " + file.getAbsolutePath()),
-                        Toast.LENGTH_LONG).show();
-            } catch (Throwable t) {
-                Toast.makeText(context,
-                        UiStrings.text("updates.download_error", "Unable to download the update",
-                                "Impossible de télécharger la mise à jour"),
-                        Toast.LENGTH_LONG).show();
-            }
+            }).start();
         });
         column.addView(download, stackedButtonParams(context, 16));
 

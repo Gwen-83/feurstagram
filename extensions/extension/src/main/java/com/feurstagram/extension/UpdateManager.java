@@ -84,6 +84,8 @@ public final class UpdateManager {
             connection.setReadTimeout(15000);
             connection.setRequestMethod("GET");
             connection.setDoInput(true);
+            connection.setRequestProperty("Accept", "application/json,text/plain,*/*");
+            connection.setRequestProperty("User-Agent", "Feurstagram/" + (Config.getAppVersionName() == null ? "unknown" : Config.getAppVersionName()));
             int code = connection.getResponseCode();
             if (code < 200 || code >= 300) {
                 return new Release(null, url, "Update manifest unavailable.");
@@ -306,6 +308,8 @@ public final class UpdateManager {
             connection.setConnectTimeout(10000);
             connection.setReadTimeout(20000);
             connection.setRequestMethod("GET");
+            connection.setRequestProperty("Accept", "application/octet-stream,*/*");
+            connection.setRequestProperty("User-Agent", "Feurstagram/" + (Config.getAppVersionName() == null ? "unknown" : Config.getAppVersionName()));
             if (connection.getResponseCode() < 200 || connection.getResponseCode() >= 300) {
                 return null;
             }

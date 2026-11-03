@@ -7,9 +7,6 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 
-import org.json.JSONArray;
-import org.json.JSONObject;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
@@ -105,18 +102,35 @@ public final class UpdateManager {
         }
 
         String normalized = jsonText.trim();
-        try {
-            Object root = normalized.startsWith("[") ? new JSONArray(normalized) : new JSONObject(normalized);
-            return parseReleaseObject(root);
-        } catch (Throwable ignored) {
-            // Fallback to the legacy regex parser for older manifests or partially escaped payloads.
+        String candidate = normalized;
+
+        Matcher nestedRelease = Pattern.compile("\"release\"\\s*:\\s*\\{(.*?)}", Pattern.DOTALL).matcher(normalized);
+        if (nestedRelease.find()) {
+            candidate = "{" + nestedRelease.group(1) + "}";
+        } else if (normalized.startsWith("[")) {
+            Matcher arrayObject = Pattern.compile("\\{.*?\\}", Pattern.DOTALL).matcher(normalized);
+            if (arrayObject.find()) {
+                candidate = arrayObject.group();
+            }
         }
 
         try {
-            String version = unescapeJsonString(findString(normalized, "version"));
-            String apkUrl = unescapeJsonString(findString(normalized, "apkUrl"));
-            if (apkUrl == null || apkUrl.isEmpty()) apkUrl = unescapeJsonString(findString(normalized, "downloadUrl"));
-            String notes = unescapeJsonString(findString(normalized, "notes"));
+            String version = firstNonEmpty(
+                    unescapeJsonString(findString(candidate, "version")),
+                    unescapeJsonString(findString(normalized, "releaseVersion")),
+                    unescapeJsonString(findString(normalized, "tag"))
+            );
+            String apkUrl = firstNonEmpty(
+                    unescapeJsonString(findString(candidate, "apkUrl")),
+                    unescapeJsonString(findString(candidate, "downloadUrl")),
+                    unescapeJsonString(findString(candidate, "url")),
+                    unescapeJsonString(findString(normalized, "downloadUrl"))
+            );
+            String notes = firstNonEmpty(
+                    unescapeJsonString(findString(candidate, "notes")),
+                    unescapeJsonString(findString(candidate, "changelog")),
+                    unescapeJsonString(findString(candidate, "message"))
+            );
             if (version == null || version.isEmpty()) version = null;
             if (apkUrl == null || apkUrl.isEmpty()) apkUrl = DEFAULT_UPDATE_URL;
             if (notes == null || notes.isEmpty()) notes = "Release notes unavailable.";
@@ -124,50 +138,6 @@ public final class UpdateManager {
         } catch (Throwable t) {
             return new Release(null, DEFAULT_UPDATE_URL, "Unable to parse remote update metadata.");
         }
-    }
-
-    private static Release parseReleaseObject(Object root) {
-        if (root instanceof JSONArray) {
-            JSONArray array = (JSONArray) root;
-            if (array.length() == 0) {
-                return new Release(null, DEFAULT_UPDATE_URL, "No release metadata available.");
-            }
-            Object first = array.opt(0);
-            if (first instanceof JSONObject) {
-                return parseReleaseObject((JSONObject) first);
-            }
-            return new Release(null, DEFAULT_UPDATE_URL, "No release metadata available.");
-        }
-        if (!(root instanceof JSONObject)) {
-            return new Release(null, DEFAULT_UPDATE_URL, "No release metadata available.");
-        }
-
-        JSONObject json = (JSONObject) root;
-        Object nested = json.opt("release");
-        if (nested instanceof JSONObject) {
-            json = (JSONObject) nested;
-        }
-
-        String version = firstNonEmpty(
-                json.optString("version", ""),
-                json.optString("releaseVersion", ""),
-                json.optString("tag", "")
-        );
-        String apkUrl = firstNonEmpty(
-                json.optString("apkUrl", ""),
-                json.optString("downloadUrl", ""),
-                json.optString("url", "")
-        );
-        String notes = firstNonEmpty(
-                json.optString("notes", ""),
-                json.optString("changelog", ""),
-                json.optString("message", "")
-        );
-
-        if (version == null || version.isEmpty()) return new Release(null, DEFAULT_UPDATE_URL, "Unable to parse remote update metadata.");
-        if (apkUrl == null || apkUrl.isEmpty()) apkUrl = DEFAULT_UPDATE_URL;
-        if (notes == null || notes.isEmpty()) notes = "Release notes unavailable.";
-        return new Release(version, apkUrl, notes);
     }
 
     private static String firstNonEmpty(String... values) {

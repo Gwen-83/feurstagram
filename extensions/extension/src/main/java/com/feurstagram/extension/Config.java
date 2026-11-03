@@ -350,16 +350,16 @@ public final class Config {
     }
 
     public static String getAppVersionName() {
-        return "1.0.14";
+        return "1.0.15";
     }
 
     public static String getChangelogText() {
-        return "test mise à jour v1.0.14\n\n"
-                + "Feurstagram 1.0.14\n\n"
-                + "- OTA update flow fixed to avoid UI-thread network calls\n"
-                + "- remote manifest parsing hardened for valid Cloudflare payloads\n"
-                + "- signed APK compatibility kept valid for in-place update installation\n"
-                + "- version check and download path validated on a real device\n"
+        return "test mise à jour v1.0.15\n\n"
+                + "Feurstagram 1.0.15\n\n"
+                + "- OTA update checks now reliably parse the public Cloudflare feed\n"
+                + "- updater flow hardened against main-thread network access\n"
+                + "- signed APK compatibility preserved so Android accepts in-place installation\n"
+                + "- remote manifest and download URL validated for public OTA distribution\n"
                 + "- compatibility with the public R2 update feed and APK download URL";
     }
 
